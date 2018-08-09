@@ -102,6 +102,10 @@ for id1 in sorted(object_type_dict.keys()):
         keyframe_value = '0'
         if count == 1 or count == len(bbox_dict[id1].keys()) or count % 20 == 0:
             keyframe_value = '1'
+        if id1 in object_act_dict.keys():
+            for id2 in object_act_dict[id1].keys():
+                if str(frame) == str(object_act_dict[id1][id2][0]) or str(frame) == str(object_act_dict[id1][id2][1]):
+                    keyframe_value = '1'
         annotation.setNodeAttr(box, 'keyframe', keyframe_value)
         annotation.setNodeAttr(box, 'occluded', '0')
         outside_value = '0'
@@ -123,7 +127,7 @@ for id1 in sorted(object_type_dict.keys()):
         id2_here = -1
         if id1 in object_act_dict.keys():
             for id2 in object_act_dict[id1].keys():
-                if frame in range(object_act_dict[id1][id2][0], object_act_dict[id1][id2][1]):
+                if frame in range(object_act_dict[id1][id2][0], object_act_dict[id1][id2][1] + 1):
                     id2_here = id2
                     break
         if id2_here == -1:
