@@ -1,6 +1,7 @@
 from XMLGenerator import XMLGenerator
 import yaml
-import os 
+import os
+from random import choice
 '''
 bookstore = XMLGenerator("book_store.xml")
 
@@ -24,7 +25,7 @@ bookstore.addNode(node_book_01, node_book_store)
 bookstore.genXml()
 '''
 
-ori_path = "/home/dingyuhang/annotations"
+ori_path = "/Users/dyh127/Desktop/project/trecvid_actev/annotations"
 type_yml = "VIRAT_S_000000.types.yml"
 act_yml = "VIRAT_S_000000.activities.yml"
 geom_yml = "VIRAT_S_000000.geom.yml"
@@ -66,45 +67,59 @@ for act in y:
             if id1 not in object_act_dict.keys():
                 object_act_dict[id1] = {}
             object_act_dict[id1].update({id2:timespan})
+#for q in object_act_dict.keys():
+#    print object_act_dict[q]
 
 f = open(geom_path)
 y = yaml.load(f)
 f.close()
 bbox_dict = {}
 for geom in y:
+    #print geom
     if geom.keys()[0] == 'geom':
         id1 = geom.values()[0]['id1']
         ts0 = geom.values()[0]['ts0']
         g0 = geom.values()[0]['g0']
         g0 = g0.split(' ')
-        print g0
+        #print g0
         if id1 not in bbox_dict.keys():
             bbox_dict.update({id1:{}})
         bbox_dict[id1].update({ts0:g0})
+#for object_id in bbox_dict.keys():
+#    print bbox_dict[object_id]
 
 annotation = XMLGenerator(save_xml)
 annotation_node = annotation.createNode('annotation')
 annotation.addNode(node = annotation_node)
-for id1 in object_type_dict.keys():
+for id1 in sorted(object_type_dict.keys()):
     track = annotation.createNode('track')
     annotation.setNodeAttr(track,'label','object')
     annotation.setNodeAttr(track,'id',str(id1))
-    for frame in bbox_dict[id1].keys():
+    count = 0
+    for frame in sorted(bbox_dict[id1].keys()):
+        count += 1
         box = annotation.createNode('box')
-        annotation.setNodeAttr(box, 'keyframe', '0')
+        keyframe_value = '0'
+        if count == 1 or count == len(bbox_dict[id1].keys()) or count % 20 == 0:
+            keyframe_value = '1'
+        annotation.setNodeAttr(box, 'keyframe', keyframe_value)
         annotation.setNodeAttr(box, 'occluded', '0')
-        annotation.setNodeAttr(box, 'outside', '0')
-        annotation.setNodeAttr(box, 'xtl', str(g0[0]))
-        annotation.setNodeAttr(box, 'ytl', str(g0[1]))
-        annotation.setNodeAttr(box, 'xbr', str(g0[2]))
-        annotation.setNodeAttr(box, 'ybr', str(g0[3]))
+        outside_value = '0'
+        if count == len(bbox_dict[id1].keys()):
+            outside_value = '1'
+        annotation.setNodeAttr(box, 'outside', outside_value)
+        g0 = bbox_dict[id1][frame]
+        annotation.setNodeAttr(box, 'xtl', g0[0])
+        annotation.setNodeAttr(box, 'ytl', g0[1])
+        annotation.setNodeAttr(box, 'xbr', g0[2])
+        annotation.setNodeAttr(box, 'ybr', g0[3])
         annotation.setNodeAttr(box, 'frame', str(frame))
-        
+
         attribute = annotation.createNode('attribute')
         annotation.setNodeAttr(attribute, 'name', 'type')
         annotation.setNodeValue(attribute, object_type_dict[id1])
         annotation.addNode(attribute, box)
-        
+
         id2_here = -1
         if id1 in object_act_dict.keys():
             for id2 in object_act_dict[id1].keys():
@@ -114,7 +129,7 @@ for id1 in object_type_dict.keys():
         if id2_here == -1:
             act_type = '__undefined__'
         else:
-            act_type = act_type_dict[id2_here] 
+            act_type = act_type_dict[id2_here]
         attribute = annotation.createNode('attribute')
         annotation.setNodeAttr(attribute, 'name', 'actNum')
         annotation.setNodeValue(attribute, str(id2_here))
@@ -127,4 +142,4 @@ for id1 in object_type_dict.keys():
 
         annotation.addNode(box, track)
     annotation.addNode(track, annotation_node)
-annotation.genXml()       
+annotation.genXml()
